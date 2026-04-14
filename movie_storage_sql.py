@@ -1,18 +1,16 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import row
 
 # Define the database URL
 DB_URL = "sqlite:///movies.db"
 
 # Create the engine
 engine = create_engine(DB_URL, echo=False)
-QUERY_LIST_MOVIES = "SELECT title, year, rating FROM movies "
-QUERY_ADD ="INSERT INTO movies (title, year, rating) VALUES (:title, :year, :rating)"
-QUERY_DELETE ="DELETE FROM movies WHERE title = :title"
-QUERY_UPDATE ="UPDATE movies set rating = :rating WHERE title = :title"
-QUERY_STATISTICS = """SELECT 
-    AVG(rating) AS avg_rating,
-    (SELECT title FROM movies ORDER BY rating DESC LIMIT 1) AS best_title,
+QUERY_LIST_MOVIES = "SELECT title, year, rating, poster FROM movies "
+QUERY_ADD = "INSERT INTO movies (title, year, rating, poster) VALUES (:title, :year, :rating, :poster)"
+QUERY_DELETE = "DELETE FROM movies WHERE title = :title"
+QUERY_UPDATE = "UPDATE movies set rating = :rating WHERE title = :title"
+QUERY_STATISTICS = """SELECT AVG(rating) AS                                 avg_rating,
+                             (SELECT title FROM movies ORDER BY rating DESC LIMIT 1) AS best_title,
     MAX(rating) AS best_rating,
     (SELECT title FROM movies ORDER BY rating ASC LIMIT 1) AS worst_title,
     MIN(rating) AS worst_rating,
@@ -26,7 +24,7 @@ QUERY_STATISTICS = """SELECT
             OFFSET (SELECT (COUNT(*) - 1) / 2 FROM movies)
         )
     ) AS median_rating
-FROM movies;"""
+                      FROM movies;"""
 
 QUERY_SEARCH_MOVIES = "SELECT title, year, rating FROM movies WHERE Upper(title) like  Upper(:title) "
 
@@ -52,6 +50,10 @@ with engine.connect() as connection:
                                 rating
                                 REAL
                                 NOT
+                                NULL,
+                                poster
+                                TEXT
+                                NOT
                                 NULL
                             )
                             """))
@@ -65,21 +67,21 @@ def list_movies(sorted_by_rating=False):
     :return:
     """
     with engine.connect() as connection:
-        if sorted_by_rating :
+        if sorted_by_rating:
             result = connection.execute(text(QUERY_LIST_MOVIES + " ORDER BY rating DESC"))
         else:
-            result = connection.execute(text(QUERY_LIST_MOVIES ))
+            result = connection.execute(text(QUERY_LIST_MOVIES))
         movies = result.fetchall()
 
-    return {row[0]: {"year": row[1], "rating": row[2]} for row in movies}
+    return {row[0]: {"year": row[1], "rating": row[2], "poster": row[3]} for row in movies}
 
 
-def add_movie(title, year, rating):
+def add_movie(title, year, rating, poster):
     """Add a new movie to the database."""
     with engine.connect() as connection:
         try:
             connection.execute(text(QUERY_ADD),
-                               {"title": title, "year": year, "rating": rating})
+                               {"title": title, "year": year, "rating": rating, "poster": poster})
             connection.commit()
             print(f"Movie '{title}' added successfully.")
         except Exception as e:
@@ -109,6 +111,7 @@ def update_movie(title, rating):
         except Exception as e:
             print(f"Error: {e}")
 
+
 def statistics_movies():
     """Retrieve statistics about all movies in the database."""
     with engine.connect() as connection:
@@ -133,8 +136,8 @@ def statistics_movies():
 
 def search_movies(title):
     with engine.connect() as connection:
-        result = connection.execute(text(QUERY_SEARCH_MOVIES ),
-                               {"title": f"%{title}%"})
+        result = connection.execute(text(QUERY_SEARCH_MOVIES),
+                                    {"title": f"%{title}%"})
         movies = result.fetchall()
 
     return {row[0]: {"year": row[1], "rating": row[2]} for row in movies}

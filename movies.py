@@ -3,24 +3,28 @@ import movie_storage  # this is the old movie storage file
 
 def command_list_movies():
     movie_storage.list_movies()
-    ...
 
 
 def command_add_movie():
+    """
+    Add movie to the database
+    """
     title = input("\nEnter new movie name: ")
-    year = input("Enter new movie year: ")
-    rating = input("Enter new movie rating: ")
-    movie_storage.add_movie(title, year, rating)
-    ...
+    movie_storage.add_movie(title)
 
 
 def command_delete_movie():
+    """
+    delete movie from the database
+    """
     title = input("\nEnter movie name to delete: ")
     movie_storage.delete_movie(title)
-    ...
 
 
 def command_update_movie():
+    """
+    update movie from the database
+    """
     title = input("\nEnter movie name to update: ")
     rating = input("Enter movie rating: ")
     movie_storage.update_movie(title, rating)
@@ -37,14 +41,12 @@ def command_random_movie():
     """
     Show a random movie from the database
     """
-
     movie_storage.random_movie()
-    ...
+
 
 def command_search_movie():
     """
     search movie by name
-    :return:
     """
     movie_storage.search_movie()
 
@@ -52,7 +54,6 @@ def command_search_movie():
 def command_movies_sorted_by_rating():
     """
     Show the movies sorted by rating
-    :return:
     """
     movie_storage.movies_sorted_by_rating()
 
@@ -60,13 +61,15 @@ def command_movies_sorted_by_rating():
 def command_create_rating_histogram():
     """
     Create a histogram of the ratings
-    :return:
     """
     movie_storage.create_rating_histogram()
 
 
 def command_generate_website():
-    pass
+    """
+    Generate website
+    """
+    movie_storage.generate_website()
 
 
 def show_menu_and_get_input():
