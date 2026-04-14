@@ -6,6 +6,7 @@ DB_URL = "sqlite:///movies.db"
 # Create the engine
 engine = create_engine(DB_URL, echo=False)
 QUERY_LIST_MOVIES = "SELECT title, year, rating, poster FROM movies "
+QUERY_FIND_MOVIE = "SELECT title, year, rating, poster FROM movies  WHERE title = :title"
 QUERY_ADD = "INSERT INTO movies (title, year, rating, poster) VALUES (:title, :year, :rating, :poster)"
 QUERY_DELETE = "DELETE FROM movies WHERE title = :title"
 QUERY_UPDATE = "UPDATE movies set rating = :rating WHERE title = :title"
@@ -26,7 +27,7 @@ QUERY_STATISTICS = """SELECT AVG(rating) AS                                 avg_
     ) AS median_rating
                       FROM movies;"""
 
-QUERY_SEARCH_MOVIES = "SELECT title, year, rating FROM movies WHERE Upper(title) like  Upper(:title) "
+QUERY_SEARCH_MOVIES = "SELECT title, year, rating, poster FROM movies WHERE Upper(title) like  Upper(:title) "
 
 # Create the movies table if it does not exist
 with engine.connect() as connection:
@@ -76,10 +77,24 @@ def list_movies(sorted_by_rating=False):
     return {row[0]: {"year": row[1], "rating": row[2], "poster": row[3]} for row in movies}
 
 
+def exist_movie(con, title):
+    exist = False
+    result = con.execute(text(QUERY_FIND_MOVIE),
+                         {"title": title})
+    movie = result.fetchall()
+    if len(movie) > 0:
+        exist = True
+
+    return exist
+
+
 def add_movie(title, year, rating, poster):
     """Add a new movie to the database."""
     with engine.connect() as connection:
         try:
+            if exist_movie(connection, title):
+                raise Exception(f"Movie '{title}' is already out!")
+
             connection.execute(text(QUERY_ADD),
                                {"title": title, "year": year, "rating": rating, "poster": poster})
             connection.commit()
@@ -92,6 +107,9 @@ def delete_movie(title):
     """Delete a movie from the database."""
     with engine.connect() as connection:
         try:
+            if not exist_movie(connection, title):
+                raise Exception(f"Movie '{title}' doesn't exist!")
+
             connection.execute(text(QUERY_DELETE),
                                {"title": title})
             connection.commit()
@@ -104,6 +122,9 @@ def update_movie(title, rating):
     """Update a movie's rating in the database."""
     with engine.connect() as connection:
         try:
+            if not exist_movie(connection, title):
+                raise Exception(f"Movie '{title}' doesn't exist!")
+
             connection.execute(text(QUERY_UPDATE),
                                {"title": title, "rating": rating})
             connection.commit()
@@ -136,8 +157,11 @@ def statistics_movies():
 
 def search_movies(title):
     with engine.connect() as connection:
-        result = connection.execute(text(QUERY_SEARCH_MOVIES),
-                                    {"title": f"%{title}%"})
-        movies = result.fetchall()
+        try:
+            result = connection.execute(text(QUERY_SEARCH_MOVIES),
+                                        {"title": f"%{title}%"})
+            movies = result.fetchall()
+        except Exception as e:
+            print("Error:", e)
 
     return {row[0]: {"year": row[1], "rating": row[2]} for row in movies}
